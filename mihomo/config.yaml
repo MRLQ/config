@@ -1,0 +1,263 @@
+######### 锚点 start #######
+# proxy 相关
+pr: &pr {type: select, proxies: [🎁默认,🇭🇰香港,🇹🇼台湾,🇯🇵日本,🇸🇬新加坡,🇺🇸美国,🎻其它地区,🌐全部节点,🛩️自动选择,DIRECT]}
+
+#这里是订阅更新和延迟测试相关的
+p: &p {type: http, interval: 83600, health-check: {enable: true, url: https://www.gstatic.com/generate_204, interval: 300}}
+
+######### 锚点 end #######
+b: &b {type: load-balance, include-all-providers: true, url: http://www.gstatic.com/generate_204, interval: 300, strategy: consistent-hashing, lazy: true}
+
+u: &u {type: url-test, url: http://www.gstatic.com/generate_204, interval: 300, tolerance: 5, lazy: true, include-all-providers: true}
+# url 里填写自己的订阅,名称不能重复
+proxy-providers:
+  sub1:
+    <<: *p
+    url: ""
+    path: ./proxy_providers/sub1.yaml
+
+  sub2:
+    <<: *p
+    url: ""
+    path: ./proxy_providers/sub2.yaml
+
+rule-providers:
+  China_ip:
+    type: http
+    behavior: ipcidr
+    url: "https://raw.githubusercontent.com/cbuijs/ipasn/master/country-asia-china.list"
+    path: ./rule_providers/china_ip.list
+    interval: 86400
+    format: text
+  
+  Open:
+    type: http
+    behavior: classical
+    url: "https://raw.githubusercontent.com/MRLQ/ios_rule_script/master/rule/Clash/OpenAI/OpenAI.yaml"
+    path: ./rule_providers/openai.yaml
+    interval: 864000
+    
+  tiktok:
+    type: http
+    behavior: classical
+    url: "https://raw.githubusercontent.com/MRLQ/ios_rule_script/master/rule/Clash/TikTok/TikTok.yaml"
+    path: ./rule_providers/tiktok.yaml
+    interval: 864000
+  
+  China_ASN:
+    type: http
+    behavior: classical
+    url: "https://github.com/VirgilClyne/GetSomeFries/raw/main/ruleset/ASN.China.yaml"
+    path: ./rule_providers/asn.yaml
+    interval: 864000
+
+mode: rule
+ipv6: false
+log-level: info
+allow-lan: true
+mixed-port: 7890
+tproxy-port: 1536
+redir-port: 7891
+unified-delay: false
+tcp-concurrent: true
+external-controller: 0.0.0.0:9090
+external-ui: dashboard/xd
+geodata-mode: true
+geodata-loader: standard
+geo-auto-update: true
+geo-update-interval: 12
+geox-url:
+  geoip: "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geoip.dat"
+  geosite: "https://github.com/Loyalsoldier/v2ray-rules-dat/releases/latest/download/geosite.dat"
+  mmdb: "https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@release/country.mmdb"
+  asn: "https://github.com/xishang0128/geoip/releases/download/latest/GeoLite2-ASN.mmdb"
+
+find-process-mode: always
+global-client-fingerprint: chrome
+
+profile:
+  store-selected: true
+  store-fake-ip: true
+
+sniffer:
+  enable: true
+  force-dns-mapping: true
+  parse-pure-ip: true
+  override-destination: true
+  sniff:
+    TLS:
+      ports: [443, 8443]
+    HTTP:
+      ports: [80, 8080-8880]
+      override-destination: true
+    QUIC:
+      ports: [443, 8443]
+  skip-domain:
+    - "Mijia Cloud"
+tun:
+  enable: true
+  stack: system
+  include-android-user:
+    - 0
+    - 10
+    - 999
+  exclude-package:
+    - com.tencent.mm
+    - 
+  dns-hijack:
+    - 'any:53'
+    - 'tcp://any:53'
+  gso: true
+  gso-max-size: 65536
+  auto-route: true
+  strict-route: true
+  auto-redirect: true
+  auto-detect-interface: true
+
+dns:
+  enable: true
+  # prefer-h3: true
+  listen: :1053
+  ipv6: false
+  enhanced-mode: fake-ip
+  fake-ip-range: 198.18.0.1/16
+  fake-ip-filter:
+    - '*'
+    - '+.lan'
+    - '+.local'
+
+#🎁默认 DNS, 用于解析 DNS 服务器 的域名，必须为 IP, 可为加密 DNS
+  default-nameserver:
+    - 223.6.6.6
+    - https://1.12.12.12/dns-query
+    - https://120.53.53.53/dns-query
+
+# 🎁默认的域名解析服务器，如不配置 fallback/proxy-server-nameserver , 则所有域名都由 nameserver 解析
+  nameserver:
+    # - 'https://dns.google/dns-query#dns&h3=true'
+    # - 'https://dns.cloudflare.com/dns-query#dns&h3=true'
+    - 'https://1.1.1.1/dns-query#dns'
+    - 'https://8.8.8.8/dns-query#dns'
+
+# 代理节点域名解析服务器，仅用于解析代理节点的域名
+  proxy-server-nameserver:
+    - https://1.12.12.12/dns-query
+    - https://223.6.6.6/dns-query
+
+#指定域名查询的解析服务器，可使用 geosite, 优先于 nameserver/fallback 查询
+  nameserver-policy:
+    "geosite:cn,private":
+      - https://1.12.12.12/dns-query
+      - https://223.6.6.6/dns-query
+
+proxies:
+  - name: "dns-out"
+    type: dns
+
+proxy-groups:
+
+  - {name: 🎁默认, type: select, proxies: [🇭🇰香港, 🇹🇼台湾, 🇯🇵日本, 🇸🇬新加坡, 🇺🇸美国, 🎻其它地区, 🌐全部节点, 🛩️自动选择, 🇭🇰香港-负载均衡, 🇹🇼台湾-负载均衡, 🇯🇵日本-负载均衡, 🇸🇬新加坡-负载均衡, 🇺🇸美国-负载均衡]}
+
+  - {name: dns, type: select, proxies: [🎁默认, 🌐全部节点, 🇭🇰香港, 🇹🇼台湾, 🇯🇵日本, 🇸🇬新加坡, 🇺🇸美国, 🎻其它地区, 🇭🇰香港-负载均衡, 🇹🇼台湾-负载均衡, 🇯🇵日本-负载均衡, 🇸🇬新加坡-负载均衡, 🇺🇸美国-负载均衡]}
+
+  - {name: 🌐全部节点, type: select ,include-all-providers: true}
+
+  - {name: 🌀Google, <<: *pr}
+  
+  - {name: 🏖️OpenAI,include-all-providers: true, filter: "(?i)美|us|🇺🇸|unitedstates|united states", <<: *pr}
+
+  - {name: 📱Telegram, <<: *pr}
+
+  - {name: 🍿Twitter, <<: *pr}
+
+  - {name: 🐳Pixiv, <<: *pr}
+  
+  - {name: 📽️Tiktok,include-all-providers: true, filter: "(?i)美|🇺🇸|us|unitedstates|united states", <<: *pr}
+
+  - {name: 👒Ehentai, <<: *pr}
+
+  - {name: 🔥哔哩哔哩, <<: *pr}
+
+  - {name: 🛶哔哩东南亚, <<: *pr}
+
+  - {name: 🌀巴哈姆特, <<: *pr}
+
+  - {name: 🐳Youtube, <<: *pr}
+
+  - {name: 📻Netflix, <<: *pr}
+
+  - {name: 🎼Spotify, <<: *pr}
+
+  - {name: 🛵Github, <<: *pr}
+
+  - {name: 🇨🇳国内, type: select, proxies: [DIRECT, 🎁默认]}
+
+  - {name: 🦈漏网之鱼, <<: *pr}
+
+#分隔,下面是地区分组
+  - {name: 🇭🇰香港, filter: "(?i)港|hk|🇭🇰|hongkong|hong kong", <<: *u}
+
+  - {name: 🇹🇼台湾, filter: "(?i)台|tw|🇹🇼|taiwan", <<: *u}
+
+  - {name: 🇯🇵日本, filter: "(?i)🇯🇵|日本|jp|japan", <<: *u}
+
+  - {name: 🇺🇸美国, filter: "(?i)美|🇺🇸|us|unitedstates|united states", <<: *u}
+
+  - {name: 🇸🇬新加坡, filter: "(?i)(新|🇸🇬|sg|singapore|狮城)", <<: *u}
+  
+  - { name: 🇭🇰香港-负载均衡, <<: *b, exclude-filter: "vless|trojan", filter: "(?i)港|hk|hongkong|hong kong|香港|🇭🇰" }
+  - { name: 🇹🇼台湾-负载均衡, <<: *b, exclude-filter: "vless|trojan", filter: "(?i)台|tw|taiwan|🇨🇳" }
+  - { name: 🇯🇵日本-负载均衡, <<: *b, exclude-filter: "vless|trojan", filter: "(?i)日本|jp|japan|🇯🇵" }
+  - { name: 🇺🇸美国-负载均衡, <<: *b, exclude-filter: "vless|trojan", filter: "(?i)美|us|unitedstates|united states|🇺🇸" }
+  - { name: 🇸🇬新加坡-负载均衡, <<: *b, exclude-filter: "vless|trojan", filter: "(?i)(新|sg|singapore|🇸🇬)" }
+
+  - {name: 🎻其它地区, type: select ,include-all-providers: true, filter: "(?i)^(?!.*(?:🇭🇰|🇯🇵|🇺🇸|🇸🇬|🇨🇳|港|🇹🇼|hk|hongkong|台|tw|taiwan|日|jp|japan|新|sg|singapore|狮城|美|us|unitedstates)).*"}
+
+
+  - {name: 🛩️自动选择, include-all-providers: true, tolerance: 10, type: url-test}
+
+rules:
+  - PROCESS-NAME,com.android.vending,🎁默认
+  - OR,((DST-PORT,22),(DST-PORT,33333)),🎁默认
+  # - OR,((GEOSITE,category-httpdns),(DOMAIN-KEYWORD,httpdns)),REJECT
+  - AND,((NETWORK,udp),(OR,(GEOSITE,google),(GEOIP,google))),REJECT
+  - AND,((DST-PORT,53),(DST-PORT,853)),🎁默认
+  - OR,((AND,((DST-PORT,443),(NETWORK,udp),(GEOSITE,!cn))),(AND,((DST-PORT,443),(NETWORK,udp),(GEOIP,!cn)))),🎁默认
+  - DOMAIN-REGEX,^.*googlevideo\.com$,🌀Google
+  - DOMAIN-KEYWORD,google,🌀Google
+  - DOMAIN-REGEX,(?:https?:\/\/)?(?:[a-zA-Z0-9_-]+\.)?(?:[a-zA-Z0-9_-]+\.)?google[a-zA-Z0-9_-]*\.[a-z]{2,},🌀Google
+  - DOMAIN-REGEX,"^(alt[1-8]-)?mtalk4?(-(staging|dev))?\\.google\\.com$",🌀Google
+  - RULE-SET,Open,🏖️OpenAI
+  - RULE-SET,tiktok,📽️Tiktok
+  - GEOSITE,private,DIRECT
+  - GEOSITE,openai,🏖️OpenAI
+  # - GEOSITE,biliintl,🛶哔哩东南亚
+  - GEOSITE,ehentai,👒Ehentai
+  - GEOSITE,github,🛵Github
+  - GEOSITE,twitter,🍿Twitter
+  - GEOSITE,youtube,🐳Youtube
+  - GEOSITE,google,🌀Google
+  - GEOSITE,telegram,📱Telegram
+  - GEOSITE,netflix,📻Netflix
+  - GEOSITE,bilibili,🔥哔哩哔哩
+  - GEOSITE,bahamut,🌀巴哈姆特
+  - GEOSITE,spotify,🎼Spotify
+  - GEOSITE,geolocation-!cn,🎁默认
+  - GEOSITE,geolocation-cn,DIRECT
+
+  # - AND,(AND,(DST-PORT,443),(NETWORK,UDP)),(NOT,((GEOIP,CN))),REJECT # quic
+  - IP-SUFFIX,8.8.8.8/24,dns,no-resolve
+  - IP-SUFFIX,8.8.4.4/24,dns,no-resolve
+  - IP-SUFFIX,1.1.1.1/24,dns,no-resolve
+  - IP-SUFFIX,1.0.0.1/24,dns,no-resolve
+  
+  - GEOIP,private,DIRECT
+  - GEOIP,google,🌀Google
+  - GEOIP,netflix,📻Netflix
+  - GEOIP,telegram,📱Telegram
+  - GEOIP,twitter,🍿Twitter
+  - GEOSITE,pixiv,🐳Pixiv
+  - RULE-SET,China_ASN,🇨🇳国内
+  - OR,((GEOSITE,CN),(GEOIP,CN)),🇨🇳国内
+  - RULE-SET,China_ip,🇨🇳国内
+  - MATCH,🦈漏网之鱼
