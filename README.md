@@ -1,1 +1,1 @@
-my config for celection
+config for collection
